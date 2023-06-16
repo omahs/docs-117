@@ -1,11 +1,11 @@
 ---
 title: Kafka Topology Cluster
 menu:
-docs_{{ .version }}:
-identifier: kf-topology-cluster
-name: Topology Cluster
-parent: kf-clustering
-weight: 20
+  docs_{{ .version }}:
+    identifier: kf-topology-cluster
+    name: Topology Cluster
+    parent: kf-clustering
+    weight: 20
 menu_name: docs_{{ .version }}
 section_menu_id: guides
 ---
@@ -89,7 +89,7 @@ metadata:
   name: kafka-prod
   namespace: demo
 spec:
-  version: 3.3.2
+  version: 3.4.0
   enableSSL: true
   tls:
     issuerRef:
@@ -131,10 +131,10 @@ Watch the bootstrap progress:
 ```bash
 $ kubectl get kf -n demo -w
 NAME         TYPE                  VERSION   STATUS         AGE
-kafka-prod   kubedb.com/v1alpha2   3.3.2     Provisioning   6s
-kafka-prod   kubedb.com/v1alpha2   3.3.2     Provisioning   14s
-kafka-prod   kubedb.com/v1alpha2   3.3.2     Provisioning   50s
-kafka-prod   kubedb.com/v1alpha2   3.3.2     Ready          68s
+kafka-prod   kubedb.com/v1alpha2   3.4.0     Provisioning   6s
+kafka-prod   kubedb.com/v1alpha2   3.4.0     Provisioning   14s
+kafka-prod   kubedb.com/v1alpha2   3.4.0     Provisioning   50s
+kafka-prod   kubedb.com/v1alpha2   3.4.0     Ready          68s
 ```
 
 Hence, the cluster is ready to use.
@@ -147,7 +147,7 @@ pod/kafka-prod-broker-0       1/1     Running   0               4m10s
 pod/kafka-prod-broker-1       1/1     Running   0               4m4s
 pod/kafka-prod-broker-2       1/1     Running   0               3m57s
 pod/kafka-prod-controller-0   1/1     Running   0               4m8s
-pod/kafka-prod-controller-1   1/1     Running   2 (3m35s ago)   4m
+pod/kafka-prod-controller-1   1/1     Running   0               4m
 pod/kafka-prod-controller-2   1/1     Running   0               3m53s
 
 NAME                            TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)              AGE
@@ -159,7 +159,7 @@ statefulset.apps/kafka-prod-broker       3/3     4m10s
 statefulset.apps/kafka-prod-controller   3/3     4m8s
 
 NAME                                            TYPE               VERSION   AGE
-appbinding.appcatalog.appscode.com/kafka-prod   kubedb.com/kafka   3.3.2     4m8s
+appbinding.appcatalog.appscode.com/kafka-prod   kubedb.com/kafka   3.4.0     4m8s
 
 NAME                                  TYPE                       DATA   AGE
 secret/kafka-prod-admin-cred          kubernetes.io/basic-auth   2      4m14s
@@ -226,10 +226,10 @@ Session Affinity:  None
 Events:            <none>
 ```
 
-Use the `http endpoints` and `clientauth.properties` file to set environment variables. These environment variables will be useful for handling console command operations easily.
+Use the `http endpoint` or `localhost`of your broker pod and `clientauth.properties` file to set environment variables. These environment variables will be useful for handling console command operations easily.
 
 ```bash
-root@kafka-prod-broker-0:~# export SERVER="10.244.0.100:9092,10.244.0.104:9092,10.244.0.108:9092"
+root@kafka-prod-broker-0:~# export SERVER="localhost:9092"
 root@kafka-prod-broker-0:~# export CLIENTAUTHCONFIG="$HOME/config/clientauth.properties"
 ```
 
