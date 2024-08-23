@@ -29,8 +29,8 @@ metadata:
   name: mc1
   namespace: demo
 spec:
-  replicas: 3
-  version: 1.5.22
+  replicas: 1
+  version: 1.6.22
   monitor:
     agent: prometheus.io/operator
     prometheus:
@@ -89,9 +89,10 @@ KubeDB uses `PodDisruptionBudget` to ensure that majority of these replicas are 
 
 ### spec.version
 
-`spec.version` is a required field specifying the name of the [MemcachedVersion](/docs/guides/memcached/concepts/catalog.md) crd where the docker images are specified. Currently, when you install KubeDB, it creates the following `MemcachedVersion` resources,
+`spec.version` is a required field specifying the name of the [MemcachedVersion](/docs/guides/memcached/concepts/catalog.md) crd where the docker images are specified. Currently, when you install KubeDB, it creates the following `MemcachedVersion` crds,
 
-- `1.5.4`, `1.6.22`, `1.5`, `1.5-v1`
+- `1.5.22`
+- `1.6.22`, `1.6.29`
 
 ### spec.monitor
 
@@ -106,7 +107,7 @@ Memcached managed by KubeDB can be monitored with builtin-Prometheus and Prometh
 
 ### spec.podTemplate
 
-KubeDB allows providing a template for database pod through `spec.podTemplate`. KubeDB operator will pass the information provided in `spec.podTemplate` to the Deployment created for Memcached server.
+KubeDB allows providing a template for database pod through `spec.podTemplate`. KubeDB operator will pass the information provided in `spec.podTemplate` to the Petset created for Memcached server.
 
 KubeDB accept following fields to set in `spec.podTemplate:`
 
@@ -119,6 +120,8 @@ KubeDB accept following fields to set in `spec.podTemplate:`
   - env
   - resources
   - initContainers
+  - containers
+  - podPlacementPolicy
   - imagePullSecrets
   - nodeSelector
   - affinity
@@ -132,62 +135,60 @@ KubeDB accept following fields to set in `spec.podTemplate:`
   - readinessProbe
   - lifecycle
 
-Uses of some field of `spec.podTemplate` is described below,
+You can check out the full list [here](https://github.com/kmodules/offshoot-api/blob/master/api/v2/types.go#L26C1-L279C1). Uses of some field of `spec.podTemplate` is described below,
 
-#### spec.podTemplate.spec.args
+#### spec.podTemplate.spec.tolerations
+The `spec.podTemplate.spec.tolerations` is an optional field. This can be used to specify the pod’s tolerations.
 
-`spec.podTemplate.spec.args` is an optional field. This can be used to provide additional arguments to database installation.
+#### spec.podTemplate.spec.volumes
+The `spec.podTemplate.spec.volumes` is an optional field. This can be used to provide the list of volumes that can be mounted by containers belonging to the pod.
 
-#### spec.podTemplate.spec.env
+#### spec.podTemplate.spec.podPlacementPolicy
+THe `spec.podTemplate.spec.podPlacementPolicy` is an optional field. This can be used to provide the reference of the podPlacementPolicy. This will be used by our Petset controller to place the db pods throughout the region, zone & nodes according to the policy. It utilizes kubernetes affinity & podTopologySpreadContraints feature to do so.
 
-`spec.env` is an optional field that specifies the environment variables to pass to the Memcached docker image.
-
-Note that, KubeDB does not allow to update the environment variables. If you try to update environment variables, KubeDB operator will reject the request with following error,
-
-```ini
-Error from server (BadRequest): error when applying patch:
-...
-for: "./mc.yaml": admission webhook "memcached.validators.kubedb.com" denied the request: precondition failed for:
-...
-At least one of the following was changed:
-	apiVersion
-	kind
-	name
-	namespace
-	spec.podTemplate.spec.nodeSelector
-    spec.podTemplate.spec.env
-```
-
-#### spec.podTemplate.spec.imagePullSecrets
-
-`KubeDB` provides the flexibility of deploying Memcached server from a private Docker registry. To learn how to deploym Memcached from a private registry, please visit [here](/docs/guides/memcached/private-registry/using-private-registry.md).
+#### spec.podTemplate.spec.imagePullSecret
+`KubeDB` provides the flexibility of deploying Memcached server from a private Docker registry. To learn how to deploy Memcached from a private registry, please visit [here](/docs/guides/memcached/private-registry/using-private-registry.md).
 
 #### spec.podTemplate.spec.nodeSelector
+`spec.podTemplate.spec.nodeSelector` is an optional field that specifies a map of key-value pairs. For the pod to be eligible to run on a node, the node must have each of the indicated key-value pairs as labels (it can have additional labels as well). To learn more, see [here](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector).
 
-`spec.nodeSelector` is an optional field that specifies a map of key-value pairs. For the pod to be eligible to run on a node, the node must have each of the indicated key-value pairs as labels (it can have additional labels as well). To learn more, see [here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector) .
+#### spec.podTemplate.spec.containers
+The `spec.podTemplate.spec.containers` can be used to provide the list containers and their configurations for to the database pod. Some of the fields are described below,
+
+##### spec.podTemplate.spec.containers[].name
+The `spec.podTemplate.spec.containers[].name` field used to specify the name of the container specified as a DNS_LABEL. Each container in a pod must have a unique name (DNS_LABEL). Cannot be updated.
+
+##### spec.podTemplate.spec.containers[].args
+`spec.podTemplate.spec.containers[].args` is an optional field. This can be used to provide additional arguments to database installation.
+
+##### spec.podTemplate.spec.containers[].env
+`spec.podTemplate.spec.containers[].env` is an optional field that specifies the environment variables to pass to the Memcached containers.
+
+##### spec.podTemplate.spec.containers[].resources
+`spec.podTemplate.spec.containers[].resources` is an optional field. This can be used to request compute resources required by containers of the database pods. To learn more, visit [here](https://kubernetes.io/docs/user-guide/compute-resources/).
 
 #### spec.podTemplate.spec.serviceAccountName
+`serviceAccountName` is an optional field supported by KubeDB Operator (version 0.13.0 and higher) that can be used to specify a custom service account to fine tune role based access control.
 
-  `serviceAccountName` is an optional field supported by KubeDB Operator (version 0.13.0 and higher) that can be used to specify a custom service account to fine tune role based access control.
+If this field is left empty, the KubeDB operator will create a service account name matching Memcached crd name. Role and RoleBinding that provide necessary access permissions will also be generated automatically for this service account.
 
-  If this field is left empty, the KubeDB operator will create a service account name matching Memcached crd name. Role and RoleBinding that provide necessary access permissions will also be generated automatically for this service account.
+If a service account name is given, but there’s no existing service account by that name, the KubeDB operator will create one, and Role and RoleBinding that provide necessary access permissions will also be generated for this service account.
 
-  If a service account name is given, but there's no existing service account by that name, the KubeDB operator will create one, and Role and RoleBinding that provide necessary access permissions will also be generated for this service account.
+If a service account name is given, and there’s an existing service account by that name, the KubeDB operator will use that existing service account. Since this service account is not managed by KubeDB, users are responsible for providing necessary access permissions manually. Follow the guide [here](/docs/guides/memcached/custom-rbac/using-custom-rbac.md) to grant necessary permissions in this scenario.
 
-  If a service account name is given, and there's an existing service account by that name, the KubeDB operator will use that existing service account. Since this service account is not managed by KubeDB, users are responsible for providing necessary access permissions manually. Follow the guide [here](/docs/guides/memcached/custom-rbac/using-custom-rbac.md) to grant necessary permissions in this scenario.
 
-#### spec.podTemplate.spec.resources
+## spec.serviceTemplates
+You can also provide a template for the services created by KubeDB operator for Memcached server through `spec.serviceTemplates`. This will allow you to set the type and other properties of the services.
 
-`spec.resources` is an optional field. This can be used to request compute resources required by the database pods. To learn more, visit [here](http://kubernetes.io/docs/user-guide/compute-resources/).
-
-### spec.serviceTemplate
-
-You can also provide a template for the services created by KubeDB operator for Memcached server through `spec.serviceTemplate`. This will allow you to set the type and other properties of the services.
-
-KubeDB allows following fields to set in `spec.serviceTemplate`:
+KubeDB allows following fields to set in `spec.serviceTemplates`:
+- `alias` represents the identifier of the service. It has the following possible value:
+  - `primary` is used for the primary service identification.
+  - `standby` is used for the secondary service identification.
+  - `stats` is used for the exporter service identification.
 
 - metadata:
   - annotations
+
 - spec:
   - type
   - ports
@@ -199,7 +200,8 @@ KubeDB allows following fields to set in `spec.serviceTemplate`:
   - healthCheckNodePort
   - sessionAffinityConfig
 
-See [here](https://github.com/kmodules/offshoot-api/blob/kubernetes-1.16.3/api/v1/types.go#L163) to understand these fields in detail.
+See [here](https://github.com/kmodules/offshoot-api/blob/kubernetes-1.16.3/api/v1/types.go#L163) to understand these fields in details.
+
 
 ### spec.deletionPolicy
 
